@@ -16,11 +16,36 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Deterministic Authenticated Encryption with Associated Data.
+///
+/// Like [`Aead`](crate::Aead), but encrypting the same plaintext and
+/// `aad` always produces the same ciphertext. This is useful for key
+/// wrapping and deduplication scenarios.
+///
+/// **Warning:** Deterministic encryption leaks whether two plaintexts
+/// are identical. Prefer standard [`Aead`](crate::Aead) unless you
+/// specifically need determinism.
 pub trait DeterministicAead {
+    /// Encrypt `plaintext` deterministically with associated data `aad`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails.
     fn encrypt_deterministically(&self, plaintext: &[u8], aad: &[u8]) -> Result<Vec<u8>>;
+
+    /// Decrypt `ciphertext` with associated data `aad`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the ciphertext is invalid or `aad` does
+    /// not match.
     fn decrypt_deterministically(&self, ciphertext: &[u8], aad: &[u8]) -> Result<Vec<u8>>;
 }
 
+/// Concrete deterministic AEAD implementation backed by a Tink keyset.
+///
+/// Obtain via [`KeysetHandle::primitive::<DeterministicAeadPrimitive>()`](crate::KeysetHandle::primitive).
+/// Thread-safe ([`Send`] + [`Sync`]).
 pub struct DeterministicAeadPrimitive {
     raw: *mut tink_ffi_sys::TinkDeterministicAead,
 }

@@ -16,9 +16,15 @@ use std::ffi::CStr;
 use std::fmt;
 use std::os::raw::c_char;
 
+/// Error type returned by all fallible Tink operations.
+///
+/// Contains a human-readable message from the C++ layer and a
+/// non-zero status code.
 #[derive(Debug)]
 pub struct TinkError {
+    /// Human-readable error description from the C++ layer.
     pub message: String,
+    /// Non-zero status code. Internally, 0 indicates success.
     pub code: i32,
 }
 
@@ -30,6 +36,7 @@ impl fmt::Display for TinkError {
 
 impl std::error::Error for TinkError {}
 
+/// Convenience alias for `std::result::Result<T, TinkError>`.
 pub type Result<T> = std::result::Result<T, TinkError>;
 
 pub(crate) fn check_status(rc: std::os::raw::c_int) -> Result<()> {

@@ -16,11 +16,31 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Message Authentication Code (MAC).
+///
+/// A MAC produces a short authentication tag for a message, allowing
+/// verification of data integrity and authenticity. The tag can only
+/// be computed and verified by parties that share the same key.
 pub trait Mac {
+    /// Compute a MAC tag for `data`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if tag computation fails.
     fn compute(&self, data: &[u8]) -> Result<Vec<u8>>;
+
+    /// Verify that `mac_value` is a valid tag for `data`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the tag is invalid or does not match.
     fn verify(&self, mac_value: &[u8], data: &[u8]) -> Result<()>;
 }
 
+/// Concrete MAC implementation backed by a Tink keyset.
+///
+/// Obtain via [`KeysetHandle::primitive::<MacPrimitive>()`](crate::KeysetHandle::primitive).
+/// Thread-safe ([`Send`] + [`Sync`]).
 pub struct MacPrimitive {
     raw: *mut tink_ffi_sys::TinkMac,
 }

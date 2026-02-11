@@ -16,10 +16,28 @@ use crate::error::{check_status, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Derives new keysets from a master keyset using a salt.
+///
+/// The derived keyset is deterministic: the same master key and salt always
+/// produce the same derived keyset.
+///
+/// ```ignore
+/// let deriver: KeysetDeriverPrimitive = master_handle.primitive()?;
+/// let derived_handle = deriver.derive(b"per-user-salt")?;
+/// let aead: AeadPrimitive = derived_handle.primitive()?;
+/// ```
 pub trait KeysetDeriver {
+    /// Derives a new [`KeysetHandle`] from the given `salt`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
     fn derive(&self, salt: &[u8]) -> Result<KeysetHandle>;
 }
 
+/// Concrete implementation of [`KeysetDeriver`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`].
 pub struct KeysetDeriverPrimitive {
     raw: *mut tink_ffi_sys::TinkKeysetDeriver,
 }

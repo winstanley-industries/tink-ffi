@@ -6,6 +6,7 @@ license = "Apache-2.0"
 repository = "https://github.com/winstanley-industries/tink-ffi"
 links = "tink"
 description = "Raw FFI bindings to Google Tink via C shim"
+readme = "README.md"
 
 [build-dependencies]
 cmake = "0.1"

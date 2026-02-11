@@ -16,13 +16,49 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Pseudorandom function (PRF) set.
+///
+/// Computes deterministic pseudorandom output from arbitrary input. A keyset
+/// can contain multiple PRF keys; use [`primary_id`](PrfSet::primary_id) to
+/// identify the primary, or [`key_ids`](PrfSet::key_ids) to list all keys.
+///
+/// ```ignore
+/// let prf: PrfSetPrimitive = handle.primitive()?;
+/// let output = prf.compute_primary(b"input data", 32)?;
+/// ```
 pub trait PrfSet {
+    /// Returns the key ID of the primary PRF key in the keyset.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the primary ID cannot be determined.
     fn primary_id(&self) -> Result<u32>;
+
+    /// Computes `output_len` bytes of PRF output using the primary key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the computation fails.
     fn compute_primary(&self, input: &[u8], output_len: usize) -> Result<Vec<u8>>;
+
+    /// Returns the key IDs of all PRF keys in the keyset.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the key IDs cannot be retrieved.
     fn key_ids(&self) -> Result<Vec<u32>>;
+
+    /// Computes `output_len` bytes of PRF output using the key identified by `key_id`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `key_id` is not in the keyset or the computation fails.
     fn compute(&self, key_id: u32, input: &[u8], output_len: usize) -> Result<Vec<u8>>;
 }
 
+/// Concrete implementation of [`PrfSet`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`].
 pub struct PrfSetPrimitive {
     raw: *mut tink_ffi_sys::TinkPrfSet,
 }

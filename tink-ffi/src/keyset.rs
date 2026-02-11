@@ -18,6 +18,21 @@ use std::fmt;
 use crate::error::{check_status, take_bytes, take_string, Result};
 use crate::Primitive;
 
+/// A handle to a Tink keyset -- the main entry point for all
+/// cryptographic operations.
+///
+/// A keyset contains one or more keys for a particular primitive type.
+/// Handles are created by generating from a [`KeyTemplate`] or by
+/// deserializing from JSON, binary, or encrypted formats.
+///
+/// Use [`primitive`](Self::primitive) to obtain a typed cryptographic
+/// primitive (e.g. [`AeadPrimitive`](crate::AeadPrimitive)) from the
+/// keyset.
+///
+/// # Thread Safety
+///
+/// `KeysetHandle` is [`Send`] + [`Sync`] and can be shared across
+/// threads.
 pub struct KeysetHandle {
     raw: *mut tink_ffi_sys::TinkKeysetHandle,
 }
@@ -40,6 +55,19 @@ impl KeysetHandle {
         Self { raw }
     }
 
+    /// Generate a new keyset containing a single key from the given
+    /// template.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the template is unknown or key generation
+    /// fails.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let handle = KeysetHandle::generate_new(KeyTemplate::Aes256Gcm)?;
+    /// ```
     pub fn generate_new(template: KeyTemplate) -> Result<Self> {
         let name = CString::new(template.as_str()).expect("template name contains nul byte");
         let mut raw = std::ptr::null_mut();
@@ -49,6 +77,15 @@ impl KeysetHandle {
         Ok(Self { raw })
     }
 
+    /// Serialize the keyset to cleartext JSON.
+    ///
+    /// **Warning:** The output contains raw key material. Use only for
+    /// testing or debugging. Prefer [`write_encrypted`](Self::write_encrypted)
+    /// for production storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization fails.
     pub fn to_json(&self) -> Result<String> {
         let mut json_out = std::ptr::null_mut();
         check_status(unsafe {
@@ -57,6 +94,16 @@ impl KeysetHandle {
         Ok(unsafe { take_string(json_out) })
     }
 
+    /// Deserialize a keyset from cleartext JSON.
+    ///
+    /// **Warning:** Accepts raw key material. Use only for testing or
+    /// debugging. Prefer [`read_encrypted`](Self::read_encrypted) for
+    /// production storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the JSON is malformed or the keyset is
+    /// invalid.
     pub fn from_json(json: &str) -> Result<Self> {
         let json_c = CString::new(json).expect("json contains nul byte");
         let mut raw = std::ptr::null_mut();
@@ -66,6 +113,14 @@ impl KeysetHandle {
         Ok(Self { raw })
     }
 
+    /// Serialize the keyset to cleartext binary (protobuf) format.
+    ///
+    /// **Warning:** The output contains raw key material. Prefer
+    /// [`write_encrypted`](Self::write_encrypted) for production storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization fails.
     pub fn to_binary(&self) -> Result<Vec<u8>> {
         let mut data_out = std::ptr::null_mut();
         let mut data_len = 0;
@@ -75,6 +130,15 @@ impl KeysetHandle {
         Ok(unsafe { take_bytes(data_out, data_len) })
     }
 
+    /// Deserialize a keyset from cleartext binary (protobuf) format.
+    ///
+    /// **Warning:** Accepts raw key material. Prefer
+    /// [`read_encrypted`](Self::read_encrypted) for production storage.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the data is malformed or the keyset is
+    /// invalid.
     pub fn from_binary(data: &[u8]) -> Result<Self> {
         let mut raw = std::ptr::null_mut();
         check_status(unsafe {
@@ -83,6 +147,14 @@ impl KeysetHandle {
         Ok(Self { raw })
     }
 
+    /// Extract the public key material from an asymmetric keyset.
+    ///
+    /// Returns a new handle containing only the public keys, suitable
+    /// for sharing with other parties.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the keyset does not contain asymmetric keys.
     pub fn public_handle(&self) -> Result<Self> {
         let mut public_out = std::ptr::null_mut();
         check_status(unsafe {
@@ -91,6 +163,14 @@ impl KeysetHandle {
         Ok(Self { raw: public_out })
     }
 
+    /// Return human-readable keyset metadata as JSON.
+    ///
+    /// The output includes key IDs, statuses, and type URLs but does
+    /// **not** contain raw key material.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if metadata extraction fails.
     pub fn info(&self) -> Result<String> {
         let mut info_out = std::ptr::null_mut();
         check_status(unsafe {
@@ -99,6 +179,16 @@ impl KeysetHandle {
         Ok(unsafe { take_string(info_out) })
     }
 
+    /// Generate a new keyset from a serialized key template proto.
+    ///
+    /// This is the low-level counterpart to [`generate_new`](Self::generate_new)
+    /// -- use it when you have a `KeyTemplate` protobuf serialized as
+    /// bytes (e.g. from cross-language tests or key derivation).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the template bytes are invalid or key
+    /// generation fails.
     pub fn generate_from_template_bytes(template_bytes: &[u8]) -> Result<Self> {
         let mut raw = std::ptr::null_mut();
         check_status(unsafe {
@@ -111,6 +201,15 @@ impl KeysetHandle {
         Ok(Self { raw })
     }
 
+    /// Deserialize an encrypted keyset.
+    ///
+    /// The keyset is decrypted using `master_keyset` (a serialized AEAD
+    /// keyset) with optional `associated_data`. This is the recommended
+    /// way to load keysets in production.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption or deserialization fails.
     pub fn read_encrypted(
         encrypted: &[u8],
         master_keyset: &[u8],
@@ -135,6 +234,15 @@ impl KeysetHandle {
         Ok(Self { raw })
     }
 
+    /// Serialize the keyset in encrypted form.
+    ///
+    /// The keyset is encrypted using `master_keyset` (a serialized AEAD
+    /// keyset) with optional `associated_data`. This is the recommended
+    /// way to store keysets in production.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption or serialization fails.
     pub fn write_encrypted(
         &self,
         master_keyset: &[u8],
@@ -160,6 +268,14 @@ impl KeysetHandle {
         Ok(unsafe { take_bytes(out, out_len) })
     }
 
+    /// Serialize a named key template to protobuf bytes.
+    ///
+    /// The `name` should be a Tink C++ template name (e.g.
+    /// `"AES256_GCM"`). See [`KeyTemplate::as_str`] for the mapping.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the template name is unknown.
     pub fn key_template_serialize(name: &str) -> Result<Vec<u8>> {
         let name_c = CString::new(name).expect("template name contains nul byte");
         let mut out = std::ptr::null_mut();
@@ -170,11 +286,42 @@ impl KeysetHandle {
         Ok(unsafe { take_bytes(out, out_len) })
     }
 
+    /// Create a typed cryptographic primitive from this keyset.
+    ///
+    /// The type parameter `P` determines which primitive is created.
+    /// For example, `handle.primitive::<AeadPrimitive>()` returns an
+    /// [`AeadPrimitive`](crate::AeadPrimitive).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the keyset's key type does not match the
+    /// requested primitive.
     pub fn primitive<P: Primitive>(&self) -> Result<P> {
         P::from_keyset_handle(self)
     }
 }
 
+/// Predefined key templates for Tink primitive types.
+///
+/// Each variant maps to a named template string in the C++ Tink
+/// library. Use [`as_str`](Self::as_str) to get the C++ name.
+///
+/// Variants are grouped by primitive type:
+///
+/// - **AEAD** -- `Aes*Gcm`, `Aes*Eax`, `Aes*GcmSiv`,
+///   `Aes*CtrHmacSha256`, `XChaCha20Poly1305`
+/// - **Deterministic AEAD** -- `Aes256Siv`
+/// - **MAC** -- `HmacSha*`, `AesCmac`
+/// - **Digital Signatures** -- `Ecdsa*`, `RsaSsaPkcs1*`,
+///   `RsaSsaPss*`, `Ed25519*`
+/// - **Hybrid Encryption** -- `Ecies*`, `Hpke*`
+/// - **Streaming AEAD** -- `Aes*GcmHkdf*`, `Aes*CtrHmacSha256Segment*`
+/// - **JWT MAC** -- `JwtHs*`
+/// - **JWT Signatures** -- `JwtEs*`, `JwtRs*`, `JwtPs*`
+/// - **PRF** -- `HkdfSha256`, `HmacSha*Prf`, `AesCmacPrf`
+///
+/// Variants ending in `Raw` produce keys with no output prefix.
+/// Variants ending in `NoPrefix` are equivalent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyTemplate {
     // AEAD
@@ -287,6 +434,7 @@ pub enum KeyTemplate {
 }
 
 impl KeyTemplate {
+    /// Returns the Tink C++ template name string for this template.
     pub fn as_str(&self) -> &'static str {
         match self {
             // AEAD

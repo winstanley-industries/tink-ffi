@@ -16,11 +16,39 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Creates digital signatures using asymmetric private keys.
+///
+/// ```ignore
+/// let signer: SignerPrimitive = private_handle.primitive()?;
+/// let signature = signer.sign(b"data to sign")?;
+/// ```
 pub trait Signer {
+    /// Signs the given `data` and returns the signature.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signing operation fails.
     fn sign(&self, data: &[u8]) -> Result<Vec<u8>>;
 }
 
+/// Verifies digital signatures using asymmetric public keys.
+///
+/// Use [`KeysetHandle::public_handle`] to extract the public key from a
+/// private keyset before creating a verifier.
+///
+/// ```ignore
+/// let public_handle = private_handle.public_handle()?;
+/// let verifier: VerifierPrimitive = public_handle.primitive()?;
+/// verifier.verify(&signature, b"data to sign")?;
+/// ```
 pub trait Verifier {
+    /// Verifies that `signature` is valid for the given `data`.
+    ///
+    /// Returns `Ok(())` if the signature is valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature is invalid or verification fails.
     fn verify(&self, signature: &[u8], data: &[u8]) -> Result<()>;
 }
 
@@ -28,6 +56,9 @@ pub trait Verifier {
 // SignerPrimitive
 // ---------------------------------------------------------------------------
 
+/// Concrete implementation of [`Signer`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a private-key keyset.
 pub struct SignerPrimitive {
     raw: *mut tink_ffi_sys::TinkSigner,
 }
@@ -72,6 +103,11 @@ impl Signer for SignerPrimitive {
 // VerifierPrimitive
 // ---------------------------------------------------------------------------
 
+/// Concrete implementation of [`Verifier`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a public-key keyset.
+/// Use [`KeysetHandle::public_handle`] to extract the public key from a
+/// private keyset.
 pub struct VerifierPrimitive {
     raw: *mut tink_ffi_sys::TinkVerifier,
 }

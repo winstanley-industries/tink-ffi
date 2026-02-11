@@ -1,3 +1,5 @@
+#![doc = include_str!("../../README.md")]
+
 // Copyright 2026 Adam Winstanley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,6 +48,14 @@ mod sealed {
     pub trait Sealed {}
 }
 
+/// Trait implemented by all Tink cryptographic primitives.
+///
+/// This is a sealed trait -- it cannot be implemented outside this crate.
+/// Use [`KeysetHandle::primitive`] to obtain a primitive from a keyset:
+///
+/// ```ignore
+/// let aead: AeadPrimitive = handle.primitive()?;
+/// ```
 pub trait Primitive: sealed::Sealed {
     fn from_keyset_handle(handle: &KeysetHandle) -> Result<Self>
     where

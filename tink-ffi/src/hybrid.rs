@@ -16,11 +16,43 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Public-key hybrid encryption.
+///
+/// Encrypts data using the recipient's public key. Use
+/// [`KeysetHandle::public_handle`] to extract the public key from a private
+/// keyset before creating an encryption primitive.
+///
+/// ```ignore
+/// let public_handle = private_handle.public_handle()?;
+/// let enc: HybridEncryptPrimitive = public_handle.primitive()?;
+/// let ciphertext = enc.encrypt(b"secret", b"context")?;
+/// ```
 pub trait HybridEncrypt {
+    /// Encrypts `plaintext` with optional `context_info` for domain separation.
+    ///
+    /// The `context_info` is bound to the ciphertext and must be provided
+    /// verbatim during decryption.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if encryption fails.
     fn encrypt(&self, plaintext: &[u8], context_info: &[u8]) -> Result<Vec<u8>>;
 }
 
+/// Decrypts hybrid-encrypted ciphertext using the private key.
+///
+/// ```ignore
+/// let dec: HybridDecryptPrimitive = private_handle.primitive()?;
+/// let plaintext = dec.decrypt(&ciphertext, b"context")?;
+/// ```
 pub trait HybridDecrypt {
+    /// Decrypts `ciphertext` using the private key.
+    ///
+    /// The `context_info` must match the value used during encryption.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if decryption fails or the context info does not match.
     fn decrypt(&self, ciphertext: &[u8], context_info: &[u8]) -> Result<Vec<u8>>;
 }
 
@@ -28,6 +60,9 @@ pub trait HybridDecrypt {
 // HybridEncryptPrimitive
 // ---------------------------------------------------------------------------
 
+/// Concrete implementation of [`HybridEncrypt`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a public-key keyset.
 pub struct HybridEncryptPrimitive {
     raw: *mut tink_ffi_sys::TinkHybridEncrypt,
 }
@@ -74,6 +109,9 @@ impl HybridEncrypt for HybridEncryptPrimitive {
 // HybridDecryptPrimitive
 // ---------------------------------------------------------------------------
 
+/// Concrete implementation of [`HybridDecrypt`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a private-key keyset.
 pub struct HybridDecryptPrimitive {
     raw: *mut tink_ffi_sys::TinkHybridDecrypt,
 }

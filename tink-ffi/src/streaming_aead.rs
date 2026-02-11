@@ -18,13 +18,50 @@ use crate::error::{check_status, take_bytes, Result};
 use crate::keyset::KeysetHandle;
 use crate::sealed;
 
+/// Streaming AEAD encryption for data that may not fit in memory.
+///
+/// Wraps standard [`io::Write`] and [`io::Read`] implementations with
+/// transparent encryption and decryption.
+///
+/// ```ignore
+/// let streaming: StreamingAeadPrimitive = handle.primitive()?;
+///
+/// // Encrypt
+/// let mut writer = streaming.new_encrypting_writer(file, b"aad")?;
+/// writer.write_all(b"large data")?;
+/// writer.finalize()?;
+///
+/// // Decrypt
+/// let mut reader = streaming.new_decrypting_reader(file, b"aad")?;
+/// let mut plaintext = Vec::new();
+/// reader.read_to_end(&mut plaintext)?;
+/// ```
 pub trait StreamingAead {
+    /// Wraps `writer` in an [`EncryptingWriter`] that encrypts data written to it.
+    ///
+    /// The `aad` (associated authenticated data) is bound to the ciphertext and
+    /// must be provided verbatim during decryption.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the encrypting stream cannot be initialized.
     fn new_encrypting_writer<W: io::Write>(
         &self,
         writer: W,
         aad: &[u8],
     ) -> Result<EncryptingWriter<W>>;
 
+    /// Wraps `reader` in a [`DecryptingReader`] that provides decrypted data.
+    ///
+    /// The `aad` must match the value used during encryption.
+    ///
+    /// **Note:** The current implementation reads all ciphertext into memory
+    /// upfront from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the decrypting stream cannot be initialized or the
+    /// ciphertext cannot be read.
     fn new_decrypting_reader<R: io::Read>(
         &self,
         reader: R,
@@ -36,6 +73,9 @@ pub trait StreamingAead {
 // StreamingAeadPrimitive
 // ---------------------------------------------------------------------------
 
+/// Concrete implementation of [`StreamingAead`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`].
 pub struct StreamingAeadPrimitive {
     raw: *mut tink_ffi_sys::TinkStreamingAead,
 }
@@ -119,6 +159,12 @@ impl StreamingAead for StreamingAeadPrimitive {
 // EncryptingWriter
 // ---------------------------------------------------------------------------
 
+/// An encrypting wrapper around a [`io::Write`] implementation.
+///
+/// Implements [`io::Write`]; data written is encrypted and forwarded to the
+/// underlying writer. You **must** call [`finalize`](Self::finalize) when done
+/// writing to flush remaining ciphertext. Dropping without finalizing will
+/// produce incomplete, corrupt ciphertext.
 pub struct EncryptingWriter<W> {
     stream: *mut tink_ffi_sys::TinkEncryptingStream,
     writer: Option<W>,
@@ -203,6 +249,10 @@ impl<W> Drop for EncryptingWriter<W> {
 // DecryptingReader
 // ---------------------------------------------------------------------------
 
+/// A decrypting wrapper around a [`io::Read`] implementation.
+///
+/// Implements [`io::Read`]; reads return decrypted plaintext from the
+/// underlying ciphertext stream.
 pub struct DecryptingReader<R> {
     stream: *mut tink_ffi_sys::TinkDecryptingStream,
     _reader: R,

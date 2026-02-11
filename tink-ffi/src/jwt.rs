@@ -22,16 +22,32 @@ use crate::sealed;
 // RawJwt — claims to sign/encode
 // ---------------------------------------------------------------------------
 
+/// JWT claims to be signed and encoded.
+///
+/// Wraps a [`serde_json::Value`] containing the JWT claims (issuer, subject,
+/// audience, expiration, custom claims, etc.).
+///
+/// ```ignore
+/// use serde_json::json;
+///
+/// let raw_jwt = RawJwt::new(json!({
+///     "iss": "my-service",
+///     "sub": "user-123",
+///     "exp": 1735689600,
+/// }));
+/// ```
 #[derive(Debug, Clone)]
 pub struct RawJwt {
     claims: serde_json::Value,
 }
 
 impl RawJwt {
+    /// Creates a new [`RawJwt`] from a JSON value containing the claims.
     pub fn new(claims: serde_json::Value) -> Self {
         Self { claims }
     }
 
+    /// Returns a reference to the JWT claims.
     pub fn claims(&self) -> &serde_json::Value {
         &self.claims
     }
@@ -46,16 +62,32 @@ impl RawJwt {
 // JwtValidator — validation rules
 // ---------------------------------------------------------------------------
 
+/// Validation rules for JWT verification.
+///
+/// Wraps a [`serde_json::Value`] with configuration such as expected issuer,
+/// audience, clock skew tolerance, and other validation parameters.
+///
+/// ```ignore
+/// use serde_json::json;
+///
+/// let validator = JwtValidator::new(json!({
+///     "expected_issuer": "my-service",
+///     "expected_audience": "my-app",
+///     "clock_skew_seconds": 60,
+/// }));
+/// ```
 #[derive(Debug, Clone)]
 pub struct JwtValidator {
     config: serde_json::Value,
 }
 
 impl JwtValidator {
+    /// Creates a new [`JwtValidator`] from a JSON configuration.
     pub fn new(config: serde_json::Value) -> Self {
         Self { config }
     }
 
+    /// Returns a reference to the validator configuration.
     pub fn config(&self) -> &serde_json::Value {
         &self.config
     }
@@ -70,16 +102,22 @@ impl JwtValidator {
 // VerifiedJwt — decoded, verified claims
 // ---------------------------------------------------------------------------
 
+/// A JWT whose signature has been verified.
+///
+/// Contains the decoded claims from a successfully verified token. Obtained
+/// from [`JwtMac::verify_and_decode`] or [`JwtVerify::verify_and_decode`].
 #[derive(Debug, Clone)]
 pub struct VerifiedJwt {
     claims: serde_json::Value,
 }
 
 impl VerifiedJwt {
+    /// Returns a reference to the verified claims.
     pub fn claims(&self) -> &serde_json::Value {
         &self.claims
     }
 
+    /// Consumes the [`VerifiedJwt`] and returns the claims.
     pub fn into_claims(self) -> serde_json::Value {
         self.claims
     }
@@ -89,11 +127,34 @@ impl VerifiedJwt {
 // JwtMac
 // ---------------------------------------------------------------------------
 
+/// Computes and verifies JWTs using symmetric keys (e.g., HMAC).
+///
+/// ```ignore
+/// let jwt_mac: JwtMacPrimitive = handle.primitive()?;
+/// let token = jwt_mac.compute_and_encode(&raw_jwt)?;
+/// let verified = jwt_mac.verify_and_decode(&token, &validator)?;
+/// ```
 pub trait JwtMac {
+    /// Signs the claims in `raw_jwt` and encodes the result as a compact JWT string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if signing or encoding fails.
     fn compute_and_encode(&self, raw_jwt: &RawJwt) -> Result<String>;
+
+    /// Verifies a compact JWT string and decodes its claims.
+    ///
+    /// The `validator` specifies the expected issuer, audience, and other rules.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature is invalid or validation fails.
     fn verify_and_decode(&self, compact: &str, validator: &JwtValidator) -> Result<VerifiedJwt>;
 }
 
+/// Concrete implementation of [`JwtMac`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a symmetric JWT keyset.
 pub struct JwtMacPrimitive {
     raw: *mut tink_ffi_sys::TinkJwtMac,
 }
@@ -157,10 +218,25 @@ impl JwtMac for JwtMacPrimitive {
 // JwtSigner
 // ---------------------------------------------------------------------------
 
+/// Signs JWTs using asymmetric private keys.
+///
+/// ```ignore
+/// let signer: JwtSignerPrimitive = private_handle.primitive()?;
+/// let token = signer.sign_and_encode(&raw_jwt)?;
+/// ```
 pub trait JwtSign {
+    /// Signs the claims in `raw_jwt` and encodes the result as a compact JWT string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if signing or encoding fails.
     fn sign_and_encode(&self, raw_jwt: &RawJwt) -> Result<String>;
 }
 
+/// Concrete implementation of [`JwtSign`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with an asymmetric private-key
+/// JWT keyset.
 pub struct JwtSignerPrimitive {
     raw: *mut tink_ffi_sys::TinkJwtSigner,
 }
@@ -203,10 +279,30 @@ impl JwtSign for JwtSignerPrimitive {
 // JwtVerifier
 // ---------------------------------------------------------------------------
 
+/// Verifies JWTs using asymmetric public keys.
+///
+/// Use [`KeysetHandle::public_handle`] to extract the public key from a
+/// private keyset before creating a verifier.
+///
+/// ```ignore
+/// let public_handle = private_handle.public_handle()?;
+/// let verifier: JwtVerifierPrimitive = public_handle.primitive()?;
+/// let verified = verifier.verify_and_decode(&token, &validator)?;
+/// ```
 pub trait JwtVerify {
+    /// Verifies a compact JWT string and decodes its claims.
+    ///
+    /// The `validator` specifies the expected issuer, audience, and other rules.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature is invalid or validation fails.
     fn verify_and_decode(&self, compact: &str, validator: &JwtValidator) -> Result<VerifiedJwt>;
 }
 
+/// Concrete implementation of [`JwtVerify`] backed by a Tink keyset.
+///
+/// Created via [`KeysetHandle::primitive`] with a public-key JWT keyset.
 pub struct JwtVerifierPrimitive {
     raw: *mut tink_ffi_sys::TinkJwtVerifier,
 }
