@@ -1,4 +1,5 @@
-#![doc = "Raw FFI bindings to [Google Tink](https://github.com/tink-crypto/tink-cc) via a C shim.
+#![doc = "Raw FFI bindings to [Google Tink](https://github.com/tink-crypto/tink-cc) via a C shim,
+built against [tink-cc v2.5.0](https://github.com/tink-crypto/tink-cc/releases/tag/v2.5.0).
 
 This crate provides low-level `extern \"C\"` functions that map directly to the
 C shim built on top of tink-cc. **Most users should prefer the safe

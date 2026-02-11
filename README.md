@@ -1,7 +1,8 @@
 # tink-ffi
 
 Safe Rust bindings to [Google Tink](https://github.com/tink-crypto/tink-cc)
-cryptography library via FFI.
+cryptography library via FFI, built against
+[tink-cc v2.5.0](https://github.com/tink-crypto/tink-cc/releases/tag/v2.5.0).
 
 Tink is a multi-language, cross-platform cryptographic library that provides
 secure, easy-to-use APIs for common cryptographic operations. This crate wraps
