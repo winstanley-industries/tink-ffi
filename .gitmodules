@@ -1,0 +1,3 @@
+[submodule "tink-ffi-sys/tink-cc"]
+	path = tink-ffi-sys/tink-cc
+	url = https://github.com/tink-crypto/tink-cc

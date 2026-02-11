@@ -18,10 +18,15 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let tink_cc_dir = env::var("TINK_CC_DIR").unwrap_or_else(|_| {
-        panic!(
-            "TINK_CC_DIR environment variable must be set to the path of a tink-cc source checkout.\n\
-             Get it from: https://github.com/tink-crypto/tink-cc"
-        );
+        let bundled = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("tink-cc");
+        if !bundled.join("CMakeLists.txt").exists() {
+            panic!(
+                "tink-cc source not found. If building from a git checkout, run:\n  \
+                 git submodule update --init\n\
+                 Or set TINK_CC_DIR to a tink-cc source tree."
+            );
+        }
+        bundled.to_string_lossy().into_owned()
     });
 
     let dst = cmake::Config::new("ffi")

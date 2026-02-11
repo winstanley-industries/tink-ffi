@@ -7,17 +7,14 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  TINK_CC_DIR: ${{ github.workspace }}/tink-cc
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
         with:
-          repository: tink-crypto/tink-cc
-          path: tink-cc
+          submodules: recursive
       - run: sudo apt-get install -y protobuf-compiler
       - uses: dtolnay/rust-toolchain@stable
         with:
