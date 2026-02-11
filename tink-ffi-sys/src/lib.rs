@@ -20,7 +20,6 @@ automatic memory management.
 
 This crate builds tink-cc from source via CMake. You need CMake 3.13+ and a
 C++17 compiler."]
-
 // Copyright 2026 Adam Winstanley
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +33,6 @@ C++17 compiler."]
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #![allow(non_camel_case_types)]
 
 use std::os::raw::{c_char, c_int};
