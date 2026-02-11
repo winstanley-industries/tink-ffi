@@ -5,7 +5,7 @@ edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/winstanley-industries/tink-ffi"
 description = "Safe Rust bindings to Google Tink cryptography library"
-readme = "../README.md"
+readme = "README.md"
 
 [dependencies]
 tink-ffi-sys = { path = "../tink-ffi-sys", version = "0.1" }
