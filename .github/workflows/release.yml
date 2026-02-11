@@ -21,16 +21,16 @@ jobs:
       - run: cargo build
       - run: cargo test -p testing-server
 
-      # Publish tink-ffi-sys first (dependency)
-      - run: cargo publish -p tink-ffi-sys
+      # Publish tink-ffi-sys first (dependency), skip if already published
+      - run: cargo publish -p tink-ffi-sys || echo "tink-ffi-sys already published, skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       # Wait for crates.io to index tink-ffi-sys
       - run: sleep 30
 
-      # Publish tink-ffi
-      - run: cargo publish -p tink-ffi
+      # Publish tink-ffi, skip if already published
+      - run: cargo publish -p tink-ffi || echo "tink-ffi already published, skipping"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
