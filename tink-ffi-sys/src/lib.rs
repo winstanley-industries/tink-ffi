@@ -2,7 +2,7 @@
 
 This crate provides low-level `extern \"C\"` functions that map directly to the
 C shim built on top of tink-cc. **Most users should prefer the safe
-[`tink_ffi`] crate**, which wraps these bindings in idiomatic Rust with
+[`tink_ffi`](https://docs.rs/tink-ffi/latest/tink_ffi/) crate**, which wraps these bindings in idiomatic Rust with
 automatic memory management.
 
 # Conventions
@@ -41,55 +41,55 @@ use std::os::raw::{c_char, c_int};
 // Opaque handle types
 // ---------------------------------------------------------------------------
 
-/// Opaque handle to a Tink keyset. See [`tink_ffi::KeysetHandle`] for the safe wrapper.
+/// Opaque handle to a Tink keyset. See [`KeysetHandle`](https://docs.rs/tink-ffi/latest/tink_ffi/struct.KeysetHandle.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkKeysetHandle {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink AEAD primitive. See [`tink_ffi::Aead`] for the safe wrapper.
+/// Opaque handle to a Tink AEAD primitive. See [`Aead`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.Aead.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkAead {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink deterministic AEAD primitive. See [`tink_ffi::DeterministicAead`] for the safe wrapper.
+/// Opaque handle to a Tink deterministic AEAD primitive. See [`DeterministicAead`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.DeterministicAead.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkDeterministicAead {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink MAC primitive. See [`tink_ffi::Mac`] for the safe wrapper.
+/// Opaque handle to a Tink MAC primitive. See [`Mac`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.Mac.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkMac {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink public-key signer. See [`tink_ffi::Signer`] for the safe wrapper.
+/// Opaque handle to a Tink public-key signer. See [`Signer`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.Signer.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkSigner {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink public-key verifier. See [`tink_ffi::Verifier`] for the safe wrapper.
+/// Opaque handle to a Tink public-key verifier. See [`Verifier`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.Verifier.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkVerifier {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink hybrid encryption primitive. See [`tink_ffi::HybridEncrypt`] for the safe wrapper.
+/// Opaque handle to a Tink hybrid encryption primitive. See [`HybridEncrypt`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.HybridEncrypt.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkHybridEncrypt {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink hybrid decryption primitive. See [`tink_ffi::HybridDecrypt`] for the safe wrapper.
+/// Opaque handle to a Tink hybrid decryption primitive. See [`HybridDecrypt`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.HybridDecrypt.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkHybridDecrypt {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink streaming AEAD primitive. See [`tink_ffi::StreamingAead`] for the safe wrapper.
+/// Opaque handle to a Tink streaming AEAD primitive. See [`StreamingAead`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.StreamingAead.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkStreamingAead {
     _private: [u8; 0],
@@ -107,31 +107,31 @@ pub struct TinkDecryptingStream {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink JWT MAC primitive. See [`tink_ffi::JwtMac`] for the safe wrapper.
+/// Opaque handle to a Tink JWT MAC primitive. See [`JwtMac`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.JwtMac.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkJwtMac {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink JWT signer. See [`tink_ffi::JwtSigner`] for the safe wrapper.
+/// Opaque handle to a Tink JWT signer. See [`JwtSign`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.JwtSign.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkJwtSigner {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink JWT verifier. See [`tink_ffi::JwtVerifier`] for the safe wrapper.
+/// Opaque handle to a Tink JWT verifier. See [`JwtVerify`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.JwtVerify.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkJwtVerifier {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink PRF set. See [`tink_ffi::PrfSet`] for the safe wrapper.
+/// Opaque handle to a Tink PRF set. See [`PrfSet`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.PrfSet.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkPrfSet {
     _private: [u8; 0],
 }
 
-/// Opaque handle to a Tink keyset deriver. See [`tink_ffi::KeysetDeriver`] for the safe wrapper.
+/// Opaque handle to a Tink keyset deriver. See [`KeysetDeriver`](https://docs.rs/tink-ffi/latest/tink_ffi/trait.KeysetDeriver.html) in `tink-ffi` for the safe wrapper.
 #[repr(C)]
 pub struct TinkKeysetDeriver {
     _private: [u8; 0],

@@ -104,4 +104,4 @@ framework. See `testing-server/` for details on building and running the server.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](https://github.com/winstanley-industries/tink-ffi/blob/main/LICENSE)

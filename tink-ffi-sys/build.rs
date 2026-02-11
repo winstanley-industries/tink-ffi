@@ -17,6 +17,12 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn main() {
+    // docs.rs builds in a sandbox with no network access and no C++ toolchain.
+    // Rustdoc only needs type information, not actual linked libraries.
+    if env::var("DOCS_RS").is_ok() {
+        return;
+    }
+
     let tink_cc_dir = env::var("TINK_CC_DIR").unwrap_or_else(|_| {
         let bundled = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("tink-cc");
         if !bundled.join("CMakeLists.txt").exists() {
