@@ -1,0 +1,3 @@
+[workspace]
+members = ["tink-ffi-sys", "tink-ffi", "testing-server"]
+resolver = "2"
