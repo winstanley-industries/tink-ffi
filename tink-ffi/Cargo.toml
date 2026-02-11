@@ -1,0 +1,11 @@
+[package]
+name = "tink-ffi"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/winstanley-industries/tink-ffi"
+description = "Safe Rust bindings to Google Tink cryptography library"
+
+[dependencies]
+tink-ffi-sys = { path = "../tink-ffi-sys", version = "0.1" }
+serde_json = "1"
