@@ -18,6 +18,7 @@ jobs:
         with:
           repository: tink-crypto/tink-cc
           path: tink-cc
+      - run: sudo apt-get install -y protobuf-compiler
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
