@@ -26,19 +26,21 @@ the full set of Tink primitives.
 - Rust toolchain (stable)
 - CMake 3.22+
 - C++17 compiler (Clang or GCC)
-- A checkout of [tink-cc](https://github.com/tink-crypto/tink-cc)
 
 ## Building
 
+tink-cc is bundled as a git submodule. After cloning, initialize it and build:
+
 ```bash
-# Point to your tink-cc source checkout
-export TINK_CC_DIR=/path/to/tink-cc
-
-# Build all crates
+git submodule update --init
 cargo build
+```
 
-# Run tests
-cargo test -p testing-server
+To use a different tink-cc source tree, set `TINK_CC_DIR`:
+
+```bash
+export TINK_CC_DIR=/path/to/tink-cc
+cargo build
 ```
 
 ## Quick Example
