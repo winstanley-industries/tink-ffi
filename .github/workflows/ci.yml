@@ -24,3 +24,17 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo build
       - run: cargo test -p testing-server
+
+  bazel-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+      - run: bazel build //tink-ffi-sys:tink_ffi_cc
+      - run: bazel build //tink-ffi-sys:tink_ffi_sys

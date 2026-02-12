@@ -1,0 +1,10 @@
+module(name = "tink_ffi", version = "0.1.0")
+
+bazel_dep(name = "tink_cc", version = "2.5.0")
+bazel_dep(name = "rules_cc", version = "0.2.16")
+bazel_dep(name = "rules_rust", version = "0.68.1")
+
+local_path_override(
+    module_name = "tink_cc",
+    path = "tink-ffi-sys/tink-cc",
+)
