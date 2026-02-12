@@ -18,6 +18,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -32,7 +33,6 @@
 #include "tink/jwt/jwt_validator.h"
 #include "tink/jwt/raw_jwt.h"
 #include "tink/jwt/verified_jwt.h"
-#include "tink/jwt/internal/jwt_format.h"
 
 using crypto::tink::JwtMac;
 using crypto::tink::JwtPublicKeySign;
@@ -40,8 +40,9 @@ using crypto::tink::JwtPublicKeyVerify;
 using crypto::tink::JwtValidator;
 using crypto::tink::JwtValidatorBuilder;
 using crypto::tink::RawJwt;
+using crypto::tink::RawJwtBuilder;
 using crypto::tink::VerifiedJwt;
-using crypto::tink::jwt_internal::RawJwtParser;
+using google::protobuf::Value;
 
 struct TinkJwtMac {
   std::unique_ptr<JwtMac> jwt_mac;
@@ -64,7 +65,132 @@ static char* strdup_new(const std::string& s) {
 
 // Build a RawJwt from a JSON string like {"iss":"me","sub":"you","exp":123}.
 static absl::StatusOr<RawJwt> raw_jwt_from_json(const char* json) {
-  return RawJwtParser::FromJson(absl::nullopt, absl::string_view(json));
+  google::protobuf::Struct proto;
+  absl::Status parse_status =
+      google::protobuf::util::JsonStringToMessage(json, &proto);
+  if (!parse_status.ok()) {
+    return absl::InvalidArgumentError(
+        std::string("failed to parse JWT JSON: ") +
+        std::string(parse_status.message()));
+  }
+
+  RawJwtBuilder builder;
+  auto& fields = proto.fields();
+
+  // Registered string claims.
+  auto it = fields.find("iss");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kStringValue) {
+      return absl::InvalidArgumentError("iss must be a string");
+    }
+    builder.SetIssuer(it->second.string_value());
+  }
+
+  it = fields.find("sub");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kStringValue) {
+      return absl::InvalidArgumentError("sub must be a string");
+    }
+    builder.SetSubject(it->second.string_value());
+  }
+
+  it = fields.find("jti");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kStringValue) {
+      return absl::InvalidArgumentError("jti must be a string");
+    }
+    builder.SetJwtId(it->second.string_value());
+  }
+
+  // Audience: can be a string or an array of strings.
+  it = fields.find("aud");
+  if (it != fields.end()) {
+    if (it->second.kind_case() == Value::kStringValue) {
+      builder.SetAudience(it->second.string_value());
+    } else if (it->second.kind_case() == Value::kListValue) {
+      std::vector<std::string> audiences;
+      for (const auto& v : it->second.list_value().values()) {
+        if (v.kind_case() != Value::kStringValue) {
+          return absl::InvalidArgumentError("aud array must contain strings");
+        }
+        audiences.push_back(v.string_value());
+      }
+      builder.SetAudiences(std::move(audiences));
+    } else {
+      return absl::InvalidArgumentError("aud must be a string or array");
+    }
+  }
+
+  // Timestamp claims.
+  it = fields.find("exp");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kNumberValue) {
+      return absl::InvalidArgumentError("exp must be a number");
+    }
+    builder.SetExpiration(
+        absl::FromUnixSeconds(static_cast<int64_t>(it->second.number_value())));
+  } else {
+    builder.WithoutExpiration();
+  }
+
+  it = fields.find("nbf");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kNumberValue) {
+      return absl::InvalidArgumentError("nbf must be a number");
+    }
+    builder.SetNotBefore(
+        absl::FromUnixSeconds(static_cast<int64_t>(it->second.number_value())));
+  }
+
+  it = fields.find("iat");
+  if (it != fields.end()) {
+    if (it->second.kind_case() != Value::kNumberValue) {
+      return absl::InvalidArgumentError("iat must be a number");
+    }
+    builder.SetIssuedAt(
+        absl::FromUnixSeconds(static_cast<int64_t>(it->second.number_value())));
+  }
+
+  // Custom claims.
+  for (const auto& [name, value] : fields) {
+    if (name == "iss" || name == "sub" || name == "aud" ||
+        name == "exp" || name == "nbf" || name == "iat" || name == "jti") {
+      continue;
+    }
+    switch (value.kind_case()) {
+      case Value::kNullValue:
+        builder.AddNullClaim(name);
+        break;
+      case Value::kBoolValue:
+        builder.AddBooleanClaim(name, value.bool_value());
+        break;
+      case Value::kStringValue:
+        builder.AddStringClaim(name, value.string_value());
+        break;
+      case Value::kNumberValue:
+        builder.AddNumberClaim(name, value.number_value());
+        break;
+      case Value::kStructValue: {
+        std::string json_obj;
+        google::protobuf::util::MessageToJsonString(
+            value.struct_value(), &json_obj);
+        builder.AddJsonObjectClaim(name, json_obj);
+        break;
+      }
+      case Value::kListValue: {
+        std::string json_arr;
+        google::protobuf::util::MessageToJsonString(
+            value.list_value(), &json_arr);
+        builder.AddJsonArrayClaim(name, json_arr);
+        break;
+      }
+      default:
+        return absl::InvalidArgumentError(
+            std::string("unsupported claim type for: ") + name);
+    }
+  }
+
+  return builder.Build();
 }
 
 // Build a JwtValidator from a JSON config string.
