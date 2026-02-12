@@ -1,5 +1,7 @@
 /target
 Cargo.lock
+/bazel-*
+MODULE.bazel.lock
 .DS_Store
 *.swp
 *.swo
