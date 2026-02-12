@@ -11,6 +11,8 @@ cc_library(
     includes = ["ffi/include"],
     deps = [
         "@tink_cc//tink:tink_cc",
+        "@tink_cc//tink:cleartext_keyset_handle",
+        "@tink_cc//tink:insecure_secret_key_access",
         # aead
         "@tink_cc//tink/aead:aead_config",
         "@tink_cc//tink/aead:aead_key_templates",
